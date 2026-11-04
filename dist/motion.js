@@ -20,6 +20,6 @@
  new MutationObserver(records=>{
   let pageChanged=false;
   for(const record of records){for(const node of record.addedNodes){if(node.nodeType!==1)continue;if(node.matches('dialog[open]'))enhanceDialog(node);node.querySelectorAll('dialog[open]').forEach(enhanceDialog);if(record.target===app&&node.tagName!=='DIALOG')pageChanged=true}}
-  if(pageChanged&&!reduced()&&app.animate&&!app.querySelector('dialog[open]')){pageAnimation?.cancel();pageAnimation=app.animate([{opacity:.45,translate:'0 7px'},{opacity:1,translate:'0 0'}],{duration:220,easing:'cubic-bezier(.2,.75,.25,1)'})}
+  if(pageChanged&&!reduced()&&app.animate&&!app.querySelector('dialog[open]')){pageAnimation?.cancel();pageAnimation=app.animate([{opacity:.45},{opacity:1}],{duration:220,easing:'cubic-bezier(.2,.75,.25,1)'})}
  }).observe(app,{childList:true,subtree:true});
 })();

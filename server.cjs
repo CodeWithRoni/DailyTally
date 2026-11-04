@@ -16,7 +16,7 @@ function createApp({database=path.join(__dirname,'data','daily-tally.sqlite'),se
  function cookie(res,userId){if(db.prepare('SELECT account_status FROM users WHERE id=?').get(userId)?.account_status!=='active')fail(403,'এই অ্যাকাউন্টটি বন্ধ আছে। অ্যাডমিনের সঙ্গে যোগাযোগ করুন।');const token=crypto.randomBytes(32).toString('hex');db.prepare('DELETE FROM sessions WHERE expires<?').run(Date.now());db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(hash(token),userId,Date.now()+604800000);res.setHeader('Set-Cookie',`dt_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800${secure?'; Secure':''}`)}
  function send(res,status,value){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(value))}
  function fail(status,message){throw Object.assign(Error(message),{status})}
- async function body(req){let chunks=[],size=0;for await(const chunk of req){size+=chunk.length;if(size>(req.url.startsWith('/api/data')?20000000:3000000))fail(413,'তথ্যের আকার বেশি।');chunks.push(chunk)}try{return JSON.parse(Buffer.concat(chunks).toString())}catch{fail(400,'সঠিক তথ্য দিন।')}}
+ async function body(req){let chunks=[],size=0;for await(const chunk of req){size+=chunk.length;if(size>(req.url.startsWith('/api/data')?20000000:3000000))fail(413,'তথ্যের আকার বেশি।');chunks.push(chunk)}let input;try{input=JSON.parse(Buffer.concat(chunks).toString())}catch{fail(400,'সঠিক তথ্য দিন।')}if(req.accountUserId&&db.prepare('SELECT account_status FROM users WHERE id=?').get(req.accountUserId)?.account_status!=='active')fail(401,'আবার লগইন করুন।');return input}
  function phone(value){const n=String(value||'').replace(/[০-৯]/g,d=>'০১২৩৪৫৬৭৮৯'.indexOf(d)).replace(/[\s()+-]/g,'').replace(/^(00880|880)/,'0');if(!/^01[3-9]\d{8}$/.test(n))fail(400,'সঠিক বাংলাদেশি মোবাইল নম্বর দিন।');return n}
  function password(value){if(typeof value!=='string'||value.length<8||value.length>128)fail(400,'পাসওয়ার্ড ৮ থেকে ১২৮ অক্ষরের হতে হবে।');return value}
  async function matches(value,user){const result=await derive(String(value||'').slice(0,128),user?.salt||dummySalt,64);return !!user&&crypto.timingSafeEqual(result,Buffer.from(user.password,'hex'))}
@@ -24,7 +24,7 @@ function createApp({database=path.join(__dirname,'data','daily-tally.sqlite'),se
  function validData(d){const kinds=['expense','given','received','due','settle','sale','purchase','income'];return d&&Array.isArray(d.people)&&Array.isArray(d.entries)&&d.people.length<=50000&&d.entries.length<=100000&&new Set(d.people.map(p=>p.id)).size===d.people.length&&new Set(d.entries.map(e=>e.id)).size===d.entries.length&&d.people.every(p=>validPhoto(p.photo)&&typeof p.id==='string'&&/^[\w-]+$/.test(p.id)&&typeof p.name==='string'&&p.name.length<=100&&typeof p.phone==='string'&&['customer','supplier'].includes(p.role))&&d.entries.every(e=>validPhoto(e.photo)&&typeof e.id==='string'&&/^[\w-]+$/.test(e.id)&&kinds.includes(e.kind)&&Number.isFinite(e.amount)&&e.amount>0&&e.amount<=999999999&&typeof e.note==='string'&&e.note.length<=500&&/^\d{4}-\d{2}-\d{2}$/.test(e.date)&&(!e.time||/^([01]\d|2[0-3]):[0-5]\d$/.test(e.time))&&(!e.person||d.people.some(p=>p.id===e.person))&&(!['given','received','due','settle'].includes(e.kind)||!!e.person))&&validExtras(d)&&(!d.profile||(typeof d.profile.name==='string'&&d.profile.name.length<=50&&typeof d.profile.photo==='string'&&d.profile.photo.length<=1500000&&(!d.profile.photo||/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(d.profile.photo))))}
  const features=createFeatures(db,{body,fail,send,phone,password,matches,validData});
  const authServices=createAuthServices(db,{body,fail,send,phone,password,matches,cookie,secure,config:{...authConfig,...(origin?{PUBLIC_ORIGIN:origin}:{})},deliver:deliverEmail,request:providerRequest||fetch});
- let admin;try{admin=createAdmin(db,{body,fail,send,phone,email:authServices.email,config:adminConfig})}catch(error){db.close();throw error}
+ let admin;try{admin=createAdmin(db,{body,fail,send,phone,email:authServices.email,matches,config:adminConfig})}catch(error){db.close();throw error}
  const passkeys=createPasskeys(db,{body,fail,send,phone,matches,cookie,origin});
  const serverBackups=createServerBackups(db,{body,fail,send,now:backupNow});
  const backupCleanupTimer=setInterval(()=>{try{serverBackups.prune()}catch{}},300000);backupCleanupTimer.unref();
@@ -38,7 +38,7 @@ function createApp({database=path.join(__dirname,'data','daily-tally.sqlite'),se
  if(!['GET','POST','PUT'].includes(req.method))fail(405,'অনুমোদিত নয়।');
  if(req.method!=='GET'&&req.headers.origin!==(origin||`http://${req.headers.host}`))fail(403,'অনুমোদিত উৎস নয়।');
  if(req.method!=='GET'&&!req.headers['content-type']?.startsWith('application/json'))fail(415,'JSON প্রয়োজন।');
- const user=session(req);
+ const user=session(req);req.accountUserId=user?.id;
  if(['/api/register','/api/login'].includes(pathname)&&req.method==='POST'){
  const now=Date.now(),key=req.socket.remoteAddress;for(const [k,v]of limits)if(now-v.start>900000)limits.delete(k);const limit=limits.get(key)||{start:now,count:0};limits.set(key,limit);if(++limit.count>30)fail(429,'অনেকবার চেষ্টা হয়েছে। ১৫ মিনিট পরে চেষ্টা করুন।');
  const input=await body(req),number=phone(input.phone),pass=password(input.password);
@@ -52,7 +52,7 @@ function createApp({database=path.join(__dirname,'data','daily-tally.sqlite'),se
  if(await reminderPush.route(req,res,pathname,user))return;
  if(!user)fail(401,'আগে লগইন করুন।');
  if(pathname==='/api/session'&&req.method==='GET')return send(res,200,admin.identity(user));
- if(pathname==='/api/data'&&req.method==='GET')return send(res,200,{data:JSON.parse(user.data),revision:user.revision});
+ if(pathname==='/api/data'&&req.method==='GET')return send(res,200,{data:JSON.parse(user.data),revision:user.revision,accountId:user.id});
  if(pathname==='/api/data'&&req.method==='PUT'){const input=await body(req);return send(res,200,features.writeData(user,input))}
  if(pathname==='/api/password'&&req.method==='POST'){const input=await body(req),pass=password(input.newPassword);if(!await matches(input.currentPassword,user))fail(400,'বর্তমান পাসওয়ার্ড সঠিক নয়।');const salt=crypto.randomBytes(16).toString('hex'),derived=await derive(pass,salt,64);db.exec('BEGIN');try{db.prepare('UPDATE users SET salt=?,password=? WHERE id=?').run(salt,derived.toString('hex'),user.id);db.prepare('DELETE FROM sessions WHERE user_id=?').run(user.id);db.prepare('DELETE FROM email_challenges WHERE user_id=?').run(user.id);db.exec('COMMIT')}catch(e){db.exec('ROLLBACK');throw e}cookie(res,user.id);return send(res,200,{ok:true})}
  if(pathname==='/api/logout'&&req.method==='POST'){db.prepare('DELETE FROM sessions WHERE token=?').run(user.session_token);res.setHeader('Set-Cookie',`dt_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure?'; Secure':''}`);return send(res,200,{ok:true})}

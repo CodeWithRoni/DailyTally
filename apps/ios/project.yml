@@ -1,0 +1,29 @@
+name: DailyTally
+options:
+  bundleIdPrefix: io.ahroni
+  deploymentTarget:
+    iOS: '16.0'
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    MARKETING_VERSION: '1.0.0'
+    CURRENT_PROJECT_VERSION: '1'
+targets:
+  DailyTally:
+    type: application
+    platform: iOS
+    sources:
+      - path: DailyTally
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.ahroni.dailytally
+        INFOPLIST_FILE: DailyTally/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: '1,2'
+schemes:
+  DailyTally:
+    build:
+      targets:
+        DailyTally: all
+    archive:
+      config: Release

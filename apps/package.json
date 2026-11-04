@@ -1,0 +1,17 @@
+{
+  "name": "dailytally-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DailyTally online desktop client",
+  "author": "ahroni",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "desktop": "electron .",
+    "build:win": "electron-builder --config electron-builder.json --win nsis --x64 --publish never",
+    "build:mac": "electron-builder --config electron-builder.json --mac dmg --publish never"
+  },
+  "devDependencies": {
+    "electron": "^45.2.1",
+    "electron-builder": "^26.18.0"
+  }
+}

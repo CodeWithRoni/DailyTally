@@ -1,0 +1,39 @@
+{
+  "appId": "io.ahroni.dailytally",
+  "productName": "DailyTally",
+  "asar": true,
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "desktop/**/*",
+    "assets/icon.png",
+    "app-config.json",
+    "package.json"
+  ],
+  "publish": null,
+  "artifactName": "DailyTally-${version}-${os}-${arch}.${ext}",
+  "win": {
+    "target": [
+      "nsis"
+    ],
+    "icon": "assets/icon.ico",
+    "forceCodeSigning": false,
+    "verifyUpdateCodeSignature": false
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "installerIcon": "assets/icon.ico",
+    "uninstallerIcon": "assets/icon.ico"
+  },
+  "mac": {
+    "target": [
+      "dmg"
+    ],
+    "icon": "assets/icon.icns",
+    "identity": null,
+    "notarize": false,
+    "category": "public.app-category.finance"
+  }
+}

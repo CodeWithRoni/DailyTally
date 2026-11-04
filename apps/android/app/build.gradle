@@ -1,0 +1,21 @@
+plugins { id 'com.android.application' }
+def appConfig = new groovy.json.JsonSlurper().parse(new File(rootDir, '../app-config.json'))
+android {
+ namespace 'io.ahroni.dailytally'
+ compileSdk 36
+ defaultConfig {
+  applicationId 'io.ahroni.dailytally'
+  minSdk 24
+  targetSdk 36
+  versionCode 1
+  versionName '1.0.0'
+  buildConfigField 'String', 'APP_URL', groovy.json.JsonOutput.toJson(appConfig.url)
+ }
+ buildFeatures { buildConfig true }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+ if (System.getenv('ANDROID_KEYSTORE_PATH')) {
+  signingConfigs { release { storeFile file(System.getenv('ANDROID_KEYSTORE_PATH')); storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD'); keyAlias System.getenv('ANDROID_KEY_ALIAS'); keyPassword System.getenv('ANDROID_KEY_PASSWORD') } }
+  buildTypes { release { signingConfig signingConfigs.release } }
+ }
+}
+dependencies { implementation 'androidx.core:core:1.17.0' }

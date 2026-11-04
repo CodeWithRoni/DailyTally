@@ -1,0 +1,211 @@
+name: Build Apps
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Which app do you want to build?
+        type: choice
+        options: [all, android, windows, macos, ios]
+        default: all
+      android_release:
+        description: Sign Android release APK using repository secrets
+        type: boolean
+        default: false
+      ios_signed:
+        description: Export signed IPA (requires Apple signing secrets)
+        type: boolean
+        default: false
+      ios_export_method:
+        description: iOS distribution profile type (signed builds only)
+        type: choice
+        options: [release-testing, app-store-connect]
+        default: release-testing
+permissions:
+  contents: read
+concurrency:
+  group: app-build-${{ github.ref }}-${{ inputs.platform }}
+  cancel-in-progress: false
+jobs:
+  android:
+    if: inputs.platform == 'all' || inputs.platform == 'android'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - run: node scripts/prepare-apps.cjs
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - name: Configure optional Android signing
+        if: inputs.android_release
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          node <<'JS'
+          const fs=require('fs'),path=require('path');
+          for(const key of ['KEYSTORE_B64','STORE_PASSWORD','KEY_ALIAS','KEY_PASSWORD'])if(!process.env[key])throw Error('Android release signing secrets are missing.');
+          fs.writeFileSync(path.join(process.env.RUNNER_TEMP,'dailytally-release.jks'),Buffer.from(process.env.KEYSTORE_B64,'base64'));
+          fs.appendFileSync(process.env.GITHUB_ENV,'ANDROID_KEYSTORE_PATH='+path.join(process.env.RUNNER_TEMP,'dailytally-release.jks')+'\n');
+          JS
+      - name: Build APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          RELEASE: ${{ inputs.android_release }}
+        run: |
+          if [ "$RELEASE" = 'true' ]; then
+            gradle --no-daemon -p apps/android assembleRelease
+          else
+            gradle --no-daemon -p apps/android assembleDebug
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DailyTally-Android-APK
+          path: apps/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Signing note
+        run: echo 'Debug APK is for testing. Use your permanent signing key for updateable release builds.' >> "$GITHUB_STEP_SUMMARY"
+  desktop:
+    if: inputs.platform == 'all' || inputs.platform == 'windows' || inputs.platform == 'macos'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-latest
+            command: npm run build:win
+            artifact: DailyTally-Windows-EXE
+            path: apps/release/*.exe
+          - platform: macos
+            os: macos-latest
+            command: npm run build:mac -- --x64 --arm64
+            artifact: DailyTally-macOS-DMG
+            path: apps/release/*.dmg
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/package-lock.json
+      - name: Prepare app sources
+        if: inputs.platform == 'all' || inputs.platform == matrix.platform
+        run: node scripts/prepare-apps.cjs
+      - name: Install desktop build dependencies
+        if: inputs.platform == 'all' || inputs.platform == matrix.platform
+        working-directory: apps
+        run: npm ci
+      - name: Build desktop installer
+        if: inputs.platform == 'all' || inputs.platform == matrix.platform
+        working-directory: apps
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: ${{ matrix.command }}
+      - uses: actions/upload-artifact@v4
+        if: inputs.platform == 'all' || inputs.platform == matrix.platform
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.path }}
+          if-no-files-found: error
+          retention-days: 14
+      - name: Signing note
+        if: inputs.platform == 'all' || inputs.platform == matrix.platform
+        shell: bash
+        run: echo 'EXE/DMG are unsigned test installers. No Windows publisher certificate or Apple notarization is configured.' >> "$GITHUB_STEP_SUMMARY"
+  ios:
+    if: inputs.platform == 'all' || inputs.platform == 'ios'
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node scripts/prepare-apps.cjs
+      - name: Generate Xcode project
+        run: |
+          command -v xcodegen >/dev/null || brew install xcodegen
+          cd apps/ios
+          xcodegen generate
+      - name: Build simulator app without Apple credentials
+        if: ${{ !inputs.ios_signed }}
+        run: xcodebuild -project apps/ios/DailyTally.xcodeproj -scheme DailyTally -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath apps/ios/build CODE_SIGNING_ALLOWED=NO build
+      - name: Package simulator app
+        if: ${{ !inputs.ios_signed }}
+        run: ditto -c -k --sequesterRsrc --keepParent apps/ios/build/Build/Products/Release-iphonesimulator/DailyTally.app apps/ios/DailyTally-iOS-Simulator.zip
+      - uses: actions/upload-artifact@v4
+        if: ${{ !inputs.ios_signed }}
+        with:
+          name: DailyTally-iOS-Simulator-NOT-IPA
+          path: apps/ios/DailyTally-iOS-Simulator.zip
+          if-no-files-found: error
+          retention-days: 14
+      - name: Prepare Apple signing
+        if: inputs.ios_signed
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+          EXPORT_METHOD: ${{ inputs.ios_export_method }}
+        run: |
+          node <<'JS'
+          const fs=require('fs'),path=require('path');for(const name of ['CERTIFICATE_BASE64','CERTIFICATE_PASSWORD','PROFILE_BASE64','TEAM_ID'])if(!process.env[name])throw Error('Apple distribution signing secrets are missing.');for(const [name,file]of [['CERTIFICATE_BASE64','signing.p12'],['PROFILE_BASE64','signing.mobileprovision']])fs.writeFileSync(path.join(process.env.RUNNER_TEMP,file),Buffer.from(process.env[name],'base64'));
+          JS
+          KEYCHAIN="$RUNNER_TEMP/dailytally.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/signing.p12" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN"
+          security cms -D -i "$RUNNER_TEMP/signing.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' "$RUNNER_TEMP/profile.plist")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print Name' "$RUNNER_TEMP/profile.plist")
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$RUNNER_TEMP/signing.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+          echo "IOS_PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          /usr/libexec/PlistBuddy -c 'Clear dict' "$RUNNER_TEMP/ExportOptions.plist"
+          /usr/libexec/PlistBuddy -c "Add :method string $EXPORT_METHOD" "$RUNNER_TEMP/ExportOptions.plist"
+          /usr/libexec/PlistBuddy -c "Add :teamID string $TEAM_ID" "$RUNNER_TEMP/ExportOptions.plist"
+          /usr/libexec/PlistBuddy -c 'Add :signingStyle string manual' "$RUNNER_TEMP/ExportOptions.plist"
+          /usr/libexec/PlistBuddy -c 'Add :provisioningProfiles dict' "$RUNNER_TEMP/ExportOptions.plist"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:io.ahroni.dailytally string $PROFILE_NAME" "$RUNNER_TEMP/ExportOptions.plist"
+      - name: Build and export signed IPA
+        if: inputs.ios_signed
+        env:
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          xcodebuild -project apps/ios/DailyTally.xcodeproj -scheme DailyTally -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -archivePath apps/ios/build/DailyTally.xcarchive DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE_SPECIFIER="$IOS_PROFILE_NAME" archive
+          xcodebuild -exportArchive -archivePath apps/ios/build/DailyTally.xcarchive -exportPath apps/ios/build/export -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+      - uses: actions/upload-artifact@v4
+        if: inputs.ios_signed
+        with:
+          name: DailyTally-iOS-Signed-IPA
+          path: apps/ios/build/export/*.ipa
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove temporary signing keychain
+        if: ${{ always() && inputs.ios_signed }}
+        run: security delete-keychain "$RUNNER_TEMP/dailytally.keychain-db" || true
+      - name: iOS output note
+        run: echo 'Without Apple signing secrets the iOS output is a Simulator app, not an installable iPhone IPA.' >> "$GITHUB_STEP_SUMMARY"

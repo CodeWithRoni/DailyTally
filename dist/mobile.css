@@ -511,3 +511,49 @@ button.primary.quick-add{display:flex;align-items:center;gap:10px;padding:12px 1
 .admin-loading{padding:32px!important;text-align:center;color:var(--dt-muted,#6b8278)}
 .is-admin #nav button>svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Modern admin settings, scoped to avoid changing the personal ledger. */
+.admin-page .admin-settings-heading{padding:2px 4px 4px}
+.admin-settings-heading>span{font-size:9px;font-weight:750;letter-spacing:1.4px;text-transform:uppercase;color:var(--dt-green,#177e5d)}
+.admin-settings-heading h2{font-size:24px;line-height:1.3;letter-spacing:-.65px;margin:9px 0 7px}
+.admin-settings-heading p{font-size:11px;line-height:1.6;margin:0;color:var(--dt-muted,#748b80)}
+.admin-settings-layout{display:grid;gap:16px;padding-bottom:12px}
+.admin-page .admin-identity-card{position:relative;isolation:isolate;overflow:hidden;border-radius:24px;padding:20px;border:1px solid var(--dt-border,#d8e9df);background:var(--dt-surface,#fff);box-shadow:0 8px 30px #143b2810}
+.admin-identity-card:before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at 100% 0%,#35c28d1b,transparent 67%);pointer-events:none}
+.admin-identity-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.admin-owner-tag{display:inline-flex;align-items:center;gap:6px;font-size:9px;font-weight:650;letter-spacing:.15px;color:var(--dt-green,#177e5d);background:#2ba9760e;border:1px solid #48ab7c27;border-radius:30px;padding:6px 10px}
+.admin-owner-tag svg{width:13px;height:13px;flex-shrink:0}
+.admin-identity-card .admin-edit-avatar{width:34px;min-height:34px;height:34px;display:grid;place-items:center;border-radius:12px;border:1px solid var(--dt-border,#d8e9df);background:var(--dt-surface,#fff);padding:8px;color:var(--dt-green,#177e5d);box-shadow:0 2px 5px #00000004}
+.admin-edit-avatar svg{width:16px;height:16px}
+.admin-identity-main{display:flex;gap:15px;align-items:center;margin-bottom:19px;min-width:0}
+.admin-owner-avatar{height:64px;width:64px;flex:0 0 64px;display:grid;place-items:center;overflow:hidden;border-radius:21px;border:3px solid var(--dt-surface,#fff);outline:1px solid #4c9d772b;background:linear-gradient(140deg,#c9e8d6,#e9f3d3);color:#276a51;font-size:26px;font-weight:650;box-shadow:0 5px 15px #0a422a12}
+.admin-owner-avatar img{display:block;width:100%;height:100%;object-fit:cover}.admin-owner-avatar svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.5}
+.admin-identity-name{min-width:0;flex:1}.admin-identity-name h3{font-size:17px;line-height:1.4;letter-spacing:-.3px;margin:0 0 7px;overflow-wrap:anywhere}
+.admin-role-label{font-size:10px;color:var(--dt-muted,#748b80)}
+.admin-contact-lines{display:grid;gap:10px;border-top:1px solid var(--dt-border,#e3eee7);padding-top:16px}
+.admin-contact-lines>div{display:flex;align-items:center;gap:10px;color:var(--dt-muted,#71877b);font-size:11px;line-height:1.5;min-width:0}.admin-contact-lines span{overflow-wrap:anywhere}
+.admin-contact-lines svg{width:15px;height:15px;flex:0 0 15px;color:var(--dt-green,#29825e);opacity:.8}
+.admin-page .admin-preferences-card{padding:0;border-radius:22px;overflow:hidden;background:var(--dt-surface,#fff);border:1px solid var(--dt-border,#dfe9e2);box-shadow:0 5px 25px #143b2806}
+.admin-group-heading{padding:19px 18px 12px}.admin-group-heading h2{font-size:14px;margin:0 0 4px}.admin-group-heading p{font-size:10px;line-height:1.5;margin:0;color:var(--dt-muted,#748b80)}
+.admin-settings-menu{display:grid;padding:0 8px 8px;gap:0}
+.admin-settings-menu .admin-preference-row{display:flex;align-items:center;gap:11px;width:100%;min-width:0;min-height:77px;border:0;border-radius:14px;background:transparent;padding:13px 9px;text-align:left;color:var(--dt-text,#183e31);margin:0;position:relative;box-shadow:none;transition:background-color .2s,transform .2s}
+.admin-preference-row:not(:last-child):after{content:"";height:1px;position:absolute;bottom:0;left:57px;right:10px;background:var(--dt-border,#eaf0eb);opacity:.7}
+.admin-preference-icon{display:grid;place-items:center;height:37px;width:37px;flex:0 0 37px;border-radius:13px;background:#35a27710;color:var(--dt-green,#2b8965);border:1px solid #35a2770b}
+.admin-preference-icon.language{color:#648bc6;background:#648bc610;border-color:#648bc610}.admin-preference-icon.theme{color:#bc974d;background:#bc974d10;border-color:#bc974d10}
+.admin-preference-icon svg{width:19px;height:19px;flex-shrink:0}
+.admin-preference-copy{display:grid;gap:4px;flex:1;min-width:0}.admin-preference-copy strong{font-size:12px;font-weight:600;line-height:1.4}.admin-preference-copy small{font-size:9px;color:var(--dt-muted,#7a8e82);line-height:1.5}
+.admin-preference-value{font-size:9px;white-space:nowrap;color:var(--dt-muted,#748b80);padding:5px 7px;background:var(--dt-raised,#f2f7f4);border-radius:7px;max-width:90px;overflow:hidden;text-overflow:ellipsis}
+.admin-row-chevron{display:grid;place-items:center;flex:0 0 12px;color:var(--dt-muted,#8fa296);opacity:.65}.admin-row-chevron svg{height:14px;width:14px}
+.admin-settings-layout .admin-personal-link{display:flex;align-items:center;gap:12px;width:100%;padding:18px;border-radius:20px;border:1px solid #3e9d772d;background:#eaf6ef;color:var(--dt-text,#1f533b);text-align:left;min-height:84px;margin:0;box-shadow:0 4px 12px #19734b06}
+.admin-personal-icon{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:14px;background:#27a77614;color:var(--dt-green,#238763)}.admin-personal-icon svg{height:21px;width:21px}
+.admin-personal-link>span:nth-child(2){display:grid;gap:5px;flex:1;min-width:0}.admin-personal-link strong{font-size:12px;font-weight:650;line-height:1.4}.admin-personal-link small{font-size:9px;line-height:1.5;color:var(--dt-muted,#6f8b7a)}
+.admin-personal-arrow{display:grid;place-items:center;flex:0 0 25px;width:25px;height:25px;border-radius:50%;background:#3c9b7510;color:var(--dt-green,#238763)}.admin-personal-arrow svg{height:14px;width:14px}
+.admin-settings-layout .admin-signout-modern{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;padding:12px;border-radius:15px;font-size:12px;margin:2px 0 0!important;background:transparent!important;border:1px solid #d9858530!important;color:var(--dt-red,#cf5159)!important;box-shadow:none}
+.admin-signout-modern svg{height:17px;width:17px}
+.admin-page svg{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+html[data-theme="dark"] .admin-settings-menu .admin-preference-row{background:transparent!important}
+html[data-theme="dark"] .admin-settings-layout .admin-personal-link{background:#18362a!important;border-color:#32644b!important}
+@media(hover:hover){.admin-settings-menu .admin-preference-row:hover{background:#42a77d0a!important}.admin-identity-card .admin-edit-avatar:hover{transform:translateY(-2px)}.admin-personal-link:hover .admin-personal-arrow{transform:translateX(3px)}}
+.admin-personal-arrow{transition:transform .2s}
+@media(prefers-reduced-motion:no-preference){.admin-settings-layout>*{animation:admin-settings-enter .38s cubic-bezier(.2,.75,.25,1) both}.admin-settings-layout>:nth-child(2){animation-delay:.045s}.admin-settings-layout>:nth-child(3){animation-delay:.09s}.admin-settings-layout>:nth-child(4){animation-delay:.12s}.admin-settings-menu .admin-preference-row:active,.admin-settings-layout .admin-personal-link:active{transform:scale(.985)}@keyframes admin-settings-enter{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}}
+@media(max-width:360px){.admin-preference-row{gap:8px!important}.admin-preference-copy small{font-size:8px}.admin-preference-value{max-width:62px;font-size:8px;padding:4px}.admin-identity-name h3{font-size:15px}}

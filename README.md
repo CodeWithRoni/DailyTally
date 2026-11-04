@@ -1,4 +1,38 @@
 # DailyTally
+### Your everyday companion
+
+DailyTally is a mobile-friendly accounting app for managing everyday expenses and keeping track of money you owe or are owed.
+
+### Features
+
+- Person-wise transaction history and running balances
+- Daily, monthly, and yearly expense reports
+- Search, category filters, and custom date ranges
+- CSV export and print/PDF reports
+- Monthly budgets and scheduled reminders
+- Bengali and English interfaces
+- Light, dark, and system appearance
+- Currency symbol selection
+- Cloud backups and backup downloads
+- Mobile number and password authentication
+- Optional passkey sign-in on supported browsers
+
+### Built with
+
+JavaScript, Node.js, SQLite, and Turso.
+
+### Live app
+
+[Open DailyTally](https://dailytally-aaqk.onrender.com)
+
+### Developer
+
+Developed by **MD Amzad Hossain Roni (ahroni)**.
+
+[GitHub](https://github.com/CodeWithRoni) · [Facebook](https://www.facebook.com/ahronibera) · [WhatsApp](https://wa.me/8801913354321)
+
+
+# DailyTally
 
 Bangla ledger with mandatory Bangladesh mobile-number/password accounts. No SMS verification. Requires Node.js 24+. Run npm ci to install the Web Push dependency.
 

@@ -8,3 +8,15 @@ node_modules/
 *.db
 *.db-*
 *.log
+# Installers and signing material
+apps/node_modules/
+apps/release/
+apps/android/.gradle/
+apps/android/**/build/
+apps/android/local.properties
+apps/ios/build/
+apps/ios/*.xcodeproj/
+*.jks
+*.keystore
+*.p12
+*.mobileprovision

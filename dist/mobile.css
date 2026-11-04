@@ -591,3 +591,5 @@ html[data-theme="dark"] .ledger-sms-button{background:#224333!important;color:va
 #admin-delete-form{display:grid;gap:13px}#admin-delete-form label{display:grid;gap:7px;font-size:11px}#admin-delete-form input{font-size:13px;margin:0}
 .admin-delete-actions{display:grid;grid-template-columns:1fr 1.5fr;gap:10px;margin-top:6px}.admin-delete-actions button{width:100%;min-width:0;margin:0;min-height:45px;font-size:11px;line-height:1.5;border-radius:12px;padding:10px}
 .admin-delete-actions .admin-delete-confirm{background:#bd4249!important;color:white!important;border-color:#bd4249!important;font-weight:600}
+
+.social-signin .social-button-row.google-only{grid-template-columns:minmax(0,1fr)}

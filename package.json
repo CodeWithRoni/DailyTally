@@ -13,6 +13,7 @@
   "dependencies": {
     "@libsql/client": "^0.18.0",
     "@simplewebauthn/server": "^13.2.3",
+    "google-auth-library": "^11.3.3",
     "web-push": "^3.6.7"
   }
 }

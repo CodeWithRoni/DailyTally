@@ -1,5 +1,6 @@
 const {createAdmin}=require('./admin.cjs');
 const {createServerBackups}=require('./server-backups.cjs');
+const {createNativeAuth}=require('./native-auth.cjs');
 const {createPasskeys}=require('./passkeys.cjs');
 const {createDatabase}=require('./database.cjs');
 const {createReminderPush}=require('./reminder-push.cjs');
@@ -7,7 +8,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
 const {createFeatures,validExtras}=require('./account-features.cjs');
 const {createAuthServices}=require('./auth-services.cjs');
 const derive=promisify(crypto.scrypt),hash=s=>crypto.createHash('sha256').update(s).digest('hex');
-function createApp({database=path.join(__dirname,'data','daily-tally.sqlite'),secure=process.env.NODE_ENV==='production',origin=process.env.PUBLIC_ORIGIN||(process.env.RENDER_EXTERNAL_URL||''),authConfig={},deliverEmail,providerRequest,pushConfig={},sendPush,reminderNow,turso={},backupNow,adminConfig={}}={}){
+function createApp({database=path.join(__dirname,'data','daily-tally.sqlite'),secure=process.env.NODE_ENV==='production',origin=process.env.PUBLIC_ORIGIN||(process.env.RENDER_EXTERNAL_URL||''),authConfig={},deliverEmail,providerRequest,pushConfig={},sendPush,reminderNow,turso={},backupNow,adminConfig={},verifyGoogle}={}){
  if(secure&&!origin?.startsWith('https://'))throw Error('Production requires HTTPS PUBLIC_ORIGIN');
  if(database!==':memory:')fs.mkdirSync(path.dirname(database),{recursive:true});
  const db=createDatabase({database,turso});if(db.kind==='sqlite')db.exec('PRAGMA journal_mode=WAL');db.exec('CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,phone TEXT UNIQUE NOT NULL,salt TEXT NOT NULL,password TEXT NOT NULL,data TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0); CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id TEXT NOT NULL,expires INTEGER NOT NULL);');
@@ -25,6 +26,7 @@ function createApp({database=path.join(__dirname,'data','daily-tally.sqlite'),se
  const features=createFeatures(db,{body,fail,send,phone,password,matches,validData});
  const authServices=createAuthServices(db,{body,fail,send,phone,password,matches,cookie,secure,config:{...authConfig,...(origin?{PUBLIC_ORIGIN:origin}:{})},deliver:deliverEmail,request:providerRequest||fetch});
  let admin;try{admin=createAdmin(db,{body,fail,send,phone,email:authServices.email,matches,config:adminConfig})}catch(error){db.close();throw error}
+ const nativeAuth=createNativeAuth(db,{body,fail,send,matches,cookie,secure,googleClientId:authServices.googleClientId,finishGoogle:authServices.finishGoogle,verifyGoogle});
  const passkeys=createPasskeys(db,{body,fail,send,phone,matches,cookie,origin});
  const serverBackups=createServerBackups(db,{body,fail,send,now:backupNow});
  const backupCleanupTimer=setInterval(()=>{try{serverBackups.prune()}catch{}},300000);backupCleanupTimer.unref();
@@ -45,6 +47,7 @@ function createApp({database=path.join(__dirname,'data','daily-tally.sqlite'),se
  if(pathname==='/api/register'){const name=String(input.name||'').trim();if(!name||name.length>50)fail(400,'আপনার নাম দিন।');const email=input.email?authServices.email(input.email):'';const photo=input.photo===undefined?'':input.photo;if(typeof photo!=='string'||photo.length>1500000||(photo&&!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(photo)))fail(400,'প্রোফাইল ছবিটি সঠিক নয়।');const salt=crypto.randomBytes(16).toString('hex'),derived=await derive(pass,salt,64),id=crypto.randomUUID();try{db.prepare('INSERT INTO users(id,phone,salt,password,data) VALUES(?,?,?,?,?)').run(id,number,salt,derived.toString('hex'),JSON.stringify({people:[],entries:[],profile:{name,photo}}))}catch(error){if(String(error.code).includes('CONSTRAINT')||String(error.message).includes('UNIQUE'))fail(409,'এই নম্বরে অ্যাকাউন্ট আছে। লগইন করুন।');throw error}if(email)db.prepare('UPDATE users SET email=? WHERE id=?').run(email,id);db.prepare('UPDATE users SET created_at=? WHERE id=?').run(Date.now(),id);cookie(res,id);return send(res,201,{phone:number})}
  const account=db.prepare('SELECT * FROM users WHERE phone=?').get(number);if(!await matches(pass,account))fail(401,'নম্বর বা পাসওয়ার্ড সঠিক নয়।');admin.loginCheck(account,input);cookie(res,account.id);return send(res,200,{phone:number});}
  if(await admin.route(req,res,pathname,user))return;
+ if(await nativeAuth.route(req,res,pathname,user))return;
  if(await passkeys.route(req,res,pathname,user))return;
  if(await authServices.route(req,res,pathname,user))return;
  if(await features.route(req,res,pathname,user))return;

@@ -24,7 +24,7 @@ function createAdmin(db,{body,fail,send,phone,email,matches,config={}}){
     db.prepare('DELETE FROM push_deliveries WHERE device IN (SELECT endpoint FROM push_devices WHERE user_id=?)').run(target.id);
     db.prepare('DELETE FROM reset_aliases WHERE challenge_id IN (SELECT id FROM email_challenges WHERE user_id=?)').run(target.id);
     db.prepare("DELETE FROM social_pending WHERE EXISTS (SELECT 1 FROM social_identities WHERE user_id=? AND provider=json_extract(social_pending.identity,'$.provider') AND subject=json_extract(social_pending.identity,'$.subject'))").run(target.id);
-    for(const table of ['push_devices','passkey_challenges','passkeys','account_backups','backup_payloads','email_challenges','social_identities','recovery','audit','trash','sessions'])db.prepare('DELETE FROM '+table+' WHERE user_id=?').run(target.id);
+    for(const table of ['push_devices','native_auth_challenges','native_device_keys','passkey_challenges','passkeys','account_backups','backup_payloads','email_challenges','social_identities','recovery','audit','trash','sessions'])db.prepare('DELETE FROM '+table+' WHERE user_id=?').run(target.id);
     db.prepare('DELETE FROM admin_actions WHERE target_id=? OR admin_id=?').run(target.id,target.id);
     db.prepare('DELETE FROM users WHERE id=?').run(target.id);
     // Record the admin action without retaining the deleted account's identity.

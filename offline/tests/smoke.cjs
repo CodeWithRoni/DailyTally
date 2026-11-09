@@ -8,5 +8,5 @@ const scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m=
 for(let i=0;i<scripts.length;i++)new vm.Script(scripts[i],{filename:'inline-'+i+'.js'});
 assert.doesNotMatch(fs.readFileSync('auth.js','utf8'),/fetch\s*\(|XMLHttpRequest|WebSocket/);
 assert.doesNotMatch(fs.readFileSync('refresh.js','utf8'),/fetch\s*\(|accountAPI/);
-assert.match(fs.readFileSync('auth.js','utf8'),/indexedDB\.open\('DailyTallyLocal'/);
+assert.match(fs.readFileSync('auth.js','utf8'),/LOCAL_DB='DailyTallyLocal'/);
 console.log('Offline PWA static smoke checks passed.');

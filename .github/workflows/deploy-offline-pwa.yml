@@ -1,7 +1,7 @@
 name: Deploy DailyTally Offline PWA
 on:
   push:
-    branches: [offline-pwa]
+    branches: [main]
     paths:
       - 'offline/**'
       - '.github/workflows/deploy-offline-pwa.yml'
